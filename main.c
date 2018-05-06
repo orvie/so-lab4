@@ -22,26 +22,19 @@
  * Shared variables
  */
 #define MAX_BUFFER 100
-#define DEBUG
+//#define DEBUG
 
 typedef struct {
     int pid;
     char name[MAX_BUFFER];
-    char state[MAX_BUFFER];
     char vmsize[MAX_BUFFER];
-    char vmdata[MAX_BUFFER];
-    char vmexe[MAX_BUFFER];
-    char vmstk[MAX_BUFFER];
-    int voluntary_ctxt_switches;
-    int nonvoluntary_ctxt_switches;
 } proc_info;
 
 typedef struct {
-    int pid;
+    int min_pid;
+    int max_pid;
     char min_vm[MAX_BUFFER];
     char max_vm[MAX_BUFFER];
-
-
 } proc_summary;
 
 // initialize with number of process
@@ -64,6 +57,8 @@ int total_elements = 0;
 // Shared resource between processes
 proc_info *proc_buffer;
 
+proc_info *proc_single_info;
+
 void *load_info(void *arg);
 void *calc_stats();
 void *print_info(void *arg);
@@ -72,6 +67,14 @@ void *print_info(void *arg);
  * 
  */
 int main(int argc, char** argv) {
+    
+/*
+    argc = 3;
+    argv[0] = "aaa";
+    argv[1] = "1160";
+    argv[2] = "1163";
+*/
+    
 
     //Check arguments
     if (argc < 2) {
@@ -85,7 +88,7 @@ int main(int argc, char** argv) {
     proc_buffer = (proc_info *) malloc(sizeof (proc_info) * n_procs);
 
     buffer_size = n_procs;
-
+    int procs[buffer_size];
     //Create threads, semaphores and mutex
     if(sem_init(&empty, 0, buffer_size) != 0){
         printf("ERROR\n");
@@ -95,19 +98,24 @@ int main(int argc, char** argv) {
         printf("ERROR\n");
         exit(1);
     }
-    pthread_t my_threads[n_procs + 1];
-
+    pthread_t my_threads[(n_procs + 1)];
+    //The last one will print info
+    pthread_create(&my_threads[n_procs], NULL, &print_info, NULL);
+    
     int i;
     for (i = 0; i < n_procs; i++) {
-        int pid = atoi(argv[i + 1]);
-        pthread_create(&my_threads[i], NULL, &load_info, &pid);
+        procs[i] = atoi(argv[i + 1]);
+        printf("pid enviado: %d \n", procs[i]);
+        pthread_create(&my_threads[i], NULL, &load_info, &procs[i]);
 
     }
-
-    pthread_create(&my_threads[n_procs], NULL, &print_info, NULL);
-
-    //Only wait for the last thread which prints values
-    pthread_join(my_threads[n_procs], NULL);
+    printf("sale del for%s\n", "");
+    
+    int j;
+    for (j = 0; j < n_procs + 1; j++) {
+        pthread_join(my_threads[j], NULL);
+    }
+    //pthread_join(my_threads[n_procs], NULL);
     
     sem_destroy(&empty);
     sem_destroy(&full);
@@ -119,8 +127,8 @@ int main(int argc, char** argv) {
 
 void* load_info(void* arg) {
     
-    int _pid = *((int*) arg); 
-    char *saveptr1, *saveptr2, *saveptr3;
+    int _pid = *((int*) arg);
+    char *saveptr1;
     proc_info myinfo;
     FILE *fpstatus;
     char buffer[MAX_BUFFER];
@@ -128,52 +136,91 @@ void* load_info(void* arg) {
     char* token;
 
     sprintf(path, "/proc/%d/status", _pid);
+    printf("%s\n", path);
     fpstatus = fopen(path, "r");
     assert(fpstatus != NULL);
-    #ifdef DEBUG
-    printf("%s\n", path);
-    #endif // DEBUG
     myinfo.pid = _pid;
+    
     while (fgets(buffer, MAX_BUFFER, fpstatus)) {
         token = strtok_r(buffer, ":\t", &saveptr1);
         if (strstr(token, "Name")) {
-            token = strtok_r(NULL, ":\t", &saveptr2);
+            token = strtok_r(NULL, ":\t", &saveptr1);
+            
             #ifdef  DEBUG
             printf("%s\n", token);
-            #endif // DEBUG
+            #endif
             strcpy(myinfo.name, token);
         } else if (strstr(token, "VmSize")) {
-            token = strtok_r(NULL, ":\t", &saveptr3);
+            token = strtok_r(NULL, ":\t", &saveptr1);
             strcpy(myinfo.vmsize, token);
-        } 
-#ifdef  DEBUG
-        printf("%s\n", token);
-#endif
+        }
+        
+        #ifdef  DEBUG
+                printf("%s\n", token);
+        #endif
     }
 
-    sem_wait(&empty);
-    pthread_mutex_lock(&mutex);
+/*
     if (total_elements == buffer_size) {
         exit(0);
     }
+*/
+    sem_wait(&empty);
+    pthread_mutex_lock(&mutex);
+    
     proc_buffer[idx_buffer] = myinfo;
-    idx_buffer = (idx_buffer + 1) % buffer_size;
-    total_elements ++;
+    idx_buffer ++;
+    
     pthread_mutex_unlock(&mutex);
     sem_post(&full);
-    
   
     fclose(fpstatus);
 }
 
 void *print_info(void *arg){
     
-    while (1) {
+    int i;
+    for (i = 0; i < buffer_size; i++) {
         sem_wait(&full);
+        printf("printing: %d\n", rem_to_print);
+
+        //pthread_mutex_lock(&mutex);
+       // proc_info info = proc_buffer[rem_to_print];
+        printf("id: %d\n", proc_buffer[rem_to_print].pid);
+        printf("name: %s", proc_buffer[rem_to_print].name);
+        printf("mem: %s", proc_buffer[rem_to_print].vmsize);
+        
+        //calc min and max
+        int i;
+        proc_info proc;
+        proc_summary sum;
+        for (i = 0; i <= rem_to_print; i++) {
+            proc = proc_buffer[i];
+            if (i > 0) {
+                if (atoi(proc.vmsize) < atoi(sum.min_vm)) {
+                    sum.min_pid = proc.pid;
+                    strcpy(sum.min_vm, proc.vmsize);                    
+                } else if(atoi(proc.vmsize) > atoi(sum.max_vm)) {
+                   sum.max_pid = proc.pid;
+                   strcpy(sum.max_vm, proc.vmsize); 
+                }
+            }else{
+                sum.min_pid = proc.pid;
+                strcpy(sum.min_vm, proc.vmsize);
+                sum.max_pid = proc.pid;
+                strcpy(sum.max_vm, proc.vmsize);
+            }                
+        }
+
+        printf("General Statistics:\n");
+        printf("Max Mem: Id %d %s", sum.max_pid, sum.max_vm);
+        printf("Min Men: Id %d %s", sum.min_pid, sum.min_vm);
+        
+        rem_to_print ++;
+        //pthread_mutex_unlock(&mutex);
+        
+        //sem_post(&empty);
         
     }
-
-    
-    
-    
+ 
 }
