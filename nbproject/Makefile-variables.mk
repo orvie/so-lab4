@@ -9,19 +9,19 @@ CND_DISTDIR=dist
 # Debug configuration
 CND_PLATFORM_Debug=GNU-Linux
 CND_ARTIFACT_DIR_Debug=dist/Debug/GNU-Linux
-CND_ARTIFACT_NAME_Debug=psinfot
-CND_ARTIFACT_PATH_Debug=dist/Debug/GNU-Linux/psinfot
+CND_ARTIFACT_NAME_Debug=so-lab4
+CND_ARTIFACT_PATH_Debug=dist/Debug/GNU-Linux/so-lab4
 CND_PACKAGE_DIR_Debug=dist/Debug/GNU-Linux/package
-CND_PACKAGE_NAME_Debug=psinfot.tar
-CND_PACKAGE_PATH_Debug=dist/Debug/GNU-Linux/package/psinfot.tar
+CND_PACKAGE_NAME_Debug=so-lab4.tar
+CND_PACKAGE_PATH_Debug=dist/Debug/GNU-Linux/package/so-lab4.tar
 # Release configuration
 CND_PLATFORM_Release=GNU-Linux
 CND_ARTIFACT_DIR_Release=dist/Release/GNU-Linux
-CND_ARTIFACT_NAME_Release=psinfot
-CND_ARTIFACT_PATH_Release=dist/Release/GNU-Linux/psinfot
+CND_ARTIFACT_NAME_Release=so-lab4
+CND_ARTIFACT_PATH_Release=dist/Release/GNU-Linux/so-lab4
 CND_PACKAGE_DIR_Release=dist/Release/GNU-Linux/package
-CND_PACKAGE_NAME_Release=psinfot.tar
-CND_PACKAGE_PATH_Release=dist/Release/GNU-Linux/package/psinfot.tar
+CND_PACKAGE_NAME_Release=so-lab4.tar
+CND_PACKAGE_PATH_Release=dist/Release/GNU-Linux/package/so-lab4.tar
 #
 # include compiler specific variables
 #
