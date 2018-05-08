@@ -52,15 +52,10 @@ int idx_buffer = 0;
 int rem_to_print = 0;
 // buffer size is equal than amount of process
 unsigned int buffer_size = 0;
-// Control when number of elements is equal to buffer size
-int total_elements = 0;
 // Shared resource between processes
 proc_info *proc_buffer;
 
-proc_info *proc_single_info;
-
 void *load_info(void *arg);
-void *calc_stats();
 void *print_info(void *arg);
 
 /*
@@ -74,7 +69,6 @@ int main(int argc, char** argv) {
     argv[1] = "1160";
     argv[2] = "1163";
 */
-    
 
     //Check arguments
     if (argc < 2) {
@@ -117,6 +111,9 @@ int main(int argc, char** argv) {
     }
     //pthread_join(my_threads[n_procs], NULL);
     
+    //free
+    
+    free(proc_buffer);
     sem_destroy(&empty);
     sem_destroy(&full);
     pthread_mutex_destroy(&mutex);
@@ -159,12 +156,7 @@ void* load_info(void* arg) {
                 printf("%s\n", token);
         #endif
     }
-
-/*
-    if (total_elements == buffer_size) {
-        exit(0);
-    }
-*/
+    //Protect critical region
     sem_wait(&empty);
     pthread_mutex_lock(&mutex);
     
@@ -173,7 +165,8 @@ void* load_info(void* arg) {
     
     pthread_mutex_unlock(&mutex);
     sem_post(&full);
-  
+    //Protect critical region
+    //
     fclose(fpstatus);
 }
 
